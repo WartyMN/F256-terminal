@@ -1,0 +1,42 @@
+#string ID	Length	String
+0	30	Are you sure you want to exit?
+1	13	Are you sure?
+2	4	Baud
+3	11	Select baud
+4	3	BBS
+5	18	Enter URL and port
+6	8	Hang up?
+7	3	Yes
+8	2	No
+9	2	OK
+10	6	Cancel
+11	9	MAIN MENU
+12	10	b Set Baud
+13	11	f Fone Home
+14	12	d Dial a BBS
+15	7	a About
+16	6	q Quit
+17	40	Error: Could not initialize serial comms
+18	22	Error: Serial overflow
+19	25	Unknown ANSI sequence: %s
+20	14	Generic Error!
+21	14	Fatal error %u
+22	40	We don't need no stinkin' error messages
+23	19	Out of memory error
+24	11	Hit any key
+25	27	Available memory: %zu bytes
+26	3	300
+27	3	600
+28	4	1200
+29	4	2400
+30	4	4800
+31	4	9600
+32	5	19200
+33	5	38400
+34	5	57600
+35	6	115200
+36	38	https://github.com/WartyMN/f256-fterm/
+37	47	F256 f/term %c2024 Micah Bly. Version %u.%u.%u.
+38	6	F256JR
+39	5	F256K
+40	18	<unknown hardware>

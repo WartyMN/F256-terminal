@@ -1,0 +1,4 @@
+-I 
+/opt/homebrew/Cellar/cc65/2.19/share/cc65/include
+-I 
+config_cc65/include
