@@ -42,11 +42,17 @@
 
 
 #define UART_MAX_SEND_ATTEMPTS	1000
+#define ANSI_MAX_SEQUENCE_LEN	128
 
 
 /*****************************************************************************/
 /*                          File-scoped Variables                            */
 /*****************************************************************************/
+
+static uint8_t			ansi_sequence_storage[ANSI_MAX_SEQUENCE_LEN + 1];
+static uint8_t*			ansi_sequence = ansi_sequence_storage;
+static bool				ansi_started = false;
+
 
 
 /*****************************************************************************/
@@ -79,6 +85,9 @@ void Serial_ClearDLAB(void);
 // print a byte to screen, from the serial port
 void Serial_PrintByte(uint8_t the_byte);
 
+// process the ANSI sequence stored in ansi_sequence_storage
+// returns false if sequence is unknown, or on any error condition
+bool Serial_ProcessANSI(void);
 
 
 /*****************************************************************************/
@@ -205,29 +214,21 @@ uint8_t Serial_GetByte(void)
 
 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
 		
-// 	while (read_more == true)
-// 	{
-		error_code = R8(UART_LSR) & UART_ERROR_MASK;
-		
-		if (error_code > 0)
+	error_code = R8(UART_LSR) & UART_ERROR_MASK;
+	
+	if (error_code > 0)
+	{
+		sprintf(global_string_buff1, "serial error %x", error_code);
+		Buffer_NewMessage(global_string_buff1);
+	}
+	else
+	{
+		while ( (R8(UART_LSR) & UART_DATA_AVAILABLE) > 0)
 		{
-			sprintf(global_string_buff1, "serial error %x", error_code);
-			Buffer_NewMessage(global_string_buff1);
-// 			read_more = false;
+			//the_byte = R8(UART_BASE);
+			Serial_PrintByte(R8(UART_BASE));
 		}
-		else
-		{
-			while ( (R8(UART_LSR) & UART_DATA_AVAILABLE) > 0)
-			{
-				//the_byte = R8(UART_BASE);
-				Serial_PrintByte(R8(UART_BASE));
-			}
-// 			else
-// 			{
-// 				read_more = false;
-// 			}
-		}
-// 	}
+	}
 	
 	Sys_RestoreIOPage();
 	
@@ -235,12 +236,9 @@ uint8_t Serial_GetByte(void)
 }
 
 
-// print a byte to screen, from the serial port
-void Serial_PrintByte(uint8_t the_byte)
+// process a byte from the serial port, including checking for ANSI sequences and printing to screen
+void Serial_ProcessByte(uint8_t the_byte)
 {
-	uint8_t				fore_color = COLOR_ORANGE;
-	uint8_t				back_color = COLOR_BLACK;
-
 	if (the_byte == 0)
 	{
 		// error condition
@@ -248,43 +246,98 @@ void Serial_PrintByte(uint8_t the_byte)
 	}
 	else
 	{
-		//out(the_byte);
-		// TODO: dedicated routine to display chars, handling movement back to nex tline, scroll screen, etc. 
+		// TODO: dedicated routine to display chars, handling movement back to next line, scroll screen, etc. 
 		
-		if (the_byte == 13)
+		if (ansi_started != true && the_byte == CH_ESC)
 		{
-			zp_x = 0;
-		}
-		else if (the_byte == 10)
-		{
-			if (zp_y >= UI_VIEW_PANEL_BODY_Y2)
-			{
-				Text_ScrollTextAndAttrRowsUp(UI_VIEW_PANEL_BODY_Y1+1, UI_VIEW_PANEL_BODY_Y2);
-				Text_FillBox(UI_LEFT_PANEL_BODY_X1, UI_VIEW_PANEL_BODY_Y2, UI_LEFT_PANEL_BODY_X2, UI_VIEW_PANEL_BODY_Y2, CH_SPACE, fore_color, back_color);
-			}
-			else
-			{
-				++zp_y;
-			}
+			// normal text, not part of ANSI sequence
+			Serial_PrintByte(the_byte);
 		}
 		else
 		{
-			Text_SetCharAndColorAtXY(zp_x++, zp_y, the_byte, fore_color, back_color);
-			
-			if (zp_x > 79)
+			// just started an ANSI sequence, or were already in one
+			if (ansi_started == true)
 			{
-				zp_x = 0;
-				
-				if (zp_y >= UI_VIEW_PANEL_BODY_Y2)
+				if (ansi_sequence == ansi_sequence_storage)
 				{
-					Text_ScrollTextAndAttrRowsUp(UI_VIEW_PANEL_BODY_Y1+1, UI_VIEW_PANEL_BODY_Y2);
-					Text_FillBox(UI_LEFT_PANEL_BODY_X1, UI_VIEW_PANEL_BODY_Y2, UI_LEFT_PANEL_BODY_X2, UI_VIEW_PANEL_BODY_Y2, CH_SPACE, fore_color, back_color);
+					if (the_byte == 91)
+					{
+						// good. valid ansi is supposed to be ESC + [
+						// we don't actually want to capture this tho, as it is same for all sequences
+					}
+					else
+					{
+						// uh-oh. this is not ANSI sequence. abort and treat as normal text
+						ansi_started = false;
+						Serial_PrintByte(the_byte);
+					}
+				}
+				else if ( (the_byte > 64 && the_byte < 91) || (the_byte > 96 && the_byte < 123) )
+				{
+					// terminated marker for an ANSI sequence is an upper or lower case alpha char
+					ansi_started = false;
+					Serial_ProcessANSI();
+					ansi_sequence = ansi_sequence_storage;
 				}
 				else
 				{
-					++zp_y;
+					// some part of the body of the sequence
+					*ansi_sequence++ = the_byte;
 				}
 			}
+			else
+			{
+				ansi_started = true;
+			}
+		}
+	}
+}
+
+
+// print a byte to screen, from the serial port
+void Serial_PrintByte(uint8_t the_byte)
+{
+	uint8_t		fore_color = COLOR_ORANGE;
+	uint8_t		back_color = COLOR_BLACK;
+
+	if (the_byte == 13)
+	{
+		zp_x = 0;
+	}
+	else if (the_byte == 10 || the_byte == 12)
+	{
+		if (zp_y >= UI_VIEW_PANEL_BODY_Y2)
+		{
+			Text_ScrollTextAndAttrRowsUp(UI_VIEW_PANEL_BODY_Y1+1, UI_VIEW_PANEL_BODY_Y2);
+			Text_FillBox(UI_LEFT_PANEL_BODY_X1, UI_VIEW_PANEL_BODY_Y2, UI_LEFT_PANEL_BODY_X2, UI_VIEW_PANEL_BODY_Y2, CH_SPACE, fore_color, back_color);
+		}
+		else
+		{
+			++zp_y;
+		}
+	}
+	else if (the_byte == 8)
+	{
+		// backspace in ASCII. not sure if right thing is to move back or delete prev char and move back
+		--zp_x;
+	}
+	else
+	{
+		Text_SetCharAndColorAtXY(zp_x++, zp_y, the_byte, fore_color, back_color);
+	}
+	
+	if (zp_x > 79)
+	{
+		zp_x = 0;
+		
+		if (zp_y >= UI_VIEW_PANEL_BODY_Y2)
+		{
+			Text_ScrollTextAndAttrRowsUp(UI_VIEW_PANEL_BODY_Y1+1, UI_VIEW_PANEL_BODY_Y2);
+			Text_FillBox(UI_LEFT_PANEL_BODY_X1, UI_VIEW_PANEL_BODY_Y2, UI_LEFT_PANEL_BODY_X2, UI_VIEW_PANEL_BODY_Y2, CH_SPACE, fore_color, back_color);
+		}
+		else
+		{
+			++zp_y;
 		}
 	}
 
@@ -293,6 +346,23 @@ void Serial_PrintByte(uint8_t the_byte)
 	(__A__ = *(uint8_t*)ZP_Y, asm("sta $d016"));
 	(__A__ = *(uint8_t*)ZP_X, asm("sta $d014"));
 }
+
+
+// process the ANSI sequence stored in ansi_sequence_storage
+// returns false if sequence is unknown, or on any error condition
+bool Serial_ProcessANSI(void)
+{
+	uint8_t		the_len;
+	
+	ansi_sequence = ansi_sequence_storage;
+	
+	the_len = General_Strnlen((char*)ansi_sequence, ANSI_MAX_SEQUENCE_LEN + 1);
+	
+	Buffer_NewMessage((char*)ansi_sequence);
+	
+	return true;
+}
+
 
 // 25998 rem "get a byte from serial port if available, and store in in_byte" 
 // 25999 rem "die on any error"

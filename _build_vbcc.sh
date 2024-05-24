@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 DEV=~/dev/bbedit-workspace-foenix
-PROJECT=$DEV/f256-fterm
+PROJECT=$DEV/F256-terminal
 CONFIG_DIR=$PROJECT/config_cc65
 
 # name that will be used in files
