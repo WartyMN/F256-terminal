@@ -6,14 +6,65 @@ f/term is a very basic terminal emulator for the [Foenix F256jr and F256K retro 
 
 If you are a brand new F256 owner, congratulations! It's a great piece of hardware, and ton of fun to program. If you haven't already, jump on the Discord and share what you are working on.
 
-### Features
+### Why you would want this
 
-- text-only terminal communications via serial port and WIFI 232. 
-- understands line-breaks, carriage returns
+You have:
+1. An F256K or Jr with the "classic" memory layout.
+2. EITHER a Wifi232 modem and a desire to go BBS'ing OR another retro, classic, or modern computer with an RS-232 port and a null cable modem. 
+
+## Features
+
+- text-only terminal communications via serial port. 
+- understands many ANSI codes. Obviously, it does not process codes for alternative character sets, more than 16 colors, etc. 
 - scrolls terminal area
 - wow, right? hehe.
 
 ### Possible Future Features
 
-- ANSI compatibility
 - XMODEM or ZMODEM download capability
+- Built-in AT command support for changing baud rate of Wifi232 modem, setting and using phone book, etc. 
+- Built-in phone book for BBSes?
+- Help page? 
+
+## Usage
+
+### Starting a Session
+
+1. Start up the app
+2. Match the baud rate it communicates at, to the baud rate your Wifi232 modem is set to. For example, if the Wifi232 is expecting 1200 baud communication, set the baud rate of f/term to 1200. ALT-1 is the slowest speed (300), ALT-0 is the highest speed (115200). 4800-9600 is probably the sweet spot in terms of reliability. 
+3. Select the desired font/character set. ALT-I selects an IBM-style font in ANSI layout, ALT-A selects a Foenix style font in ANSI layout, and ALT-F selects the Foenix font, in Foenix layout. If you are connecting to a text BBS or another Foenix, ALT-F is a good option. If connecting to an ANSI BBS use either ALT-I or ALT-F. 
+4. (Optional) Type "at" and hit Enter and make sure your Wifi232 modem responds with "OK". If it doesn't, you probably aren't ready to dial anywhere. If you are connecting to another computer via NULL modem cable, you can just do type away, no AT commands necessary. 
+5. Enter the AT command for dialing the BBS you want to log into. For example, "atdt  cqbbs.ddns.net:6800" (plus Enter) will dial the Captain's Quarters II BBS. Your wifi modem may also have a phonebook that you can program with shortcuts (e.g, "atds=0" to dial the first number in the phone book).
+
+
+### Commands
+
+All commands are initiated with ALT key combinations. There is no separate "menu" or "command" mode. 
+
+#### Change baud
+- **ALT-1**: 300 baud
+- **ALT-2**: 1200 baud
+- **ALT-3**: 2400 baud
+- **ALT-4**: 3600 baud
+- **ALT-5**: 4800 baud
+- **ALT-6**: 9600 baud
+- **ALT-7**: 19200 baud
+- **ALT-8**: 38400 baud
+- **ALT-9**: 57600 baud
+- **ALT-0**: 115200 baud
+
+#### Change font / character set
+
+- **ALT-I**: IBM font, ANSI encoding
+- **ALT-A**: Foenix font, ANSI encoding
+- **ALT-F**: Foenix font, Foenix encoding
+
+#### Change colors
+
+- **ALT-C**: cycle to the next foreground color. This is mainly useful for text-only BBSes, as ANSI BBSes tend to be pretty trigger-happy when it comes to colors. 
+
+#### Change clock
+
+- **ALT-T**: lets you set the built-in real-time clock. Enter date/time in "YYYY-MM-DD HH:MM" format. 
+
+
