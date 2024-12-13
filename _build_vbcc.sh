@@ -56,6 +56,7 @@ rm -r $BUILD_DIR/*.o
 # compile
 cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T app.c -o $BUILD_DIR/app.s
 cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T comm_buffer.c -o $BUILD_DIR/comm_buffer.s
+cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T debug.c -o $BUILD_DIR/debug.s
 cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T general.c -o $BUILD_DIR/general.s
 cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T keyboard.c -o $BUILD_DIR/keyboard.s
 cc65 -g --cpu $CC65CPU -t $CC65TGT --code-name OVERLAY_STARTUP $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS $DEBUG_DEF_1 $DEBUG_DEF_2 $DEBUG_DEF_3 $DEBUG_DEF_4 $DEBUG_DEF_5 $DEBUG_VIA_SERIAL $STACK_CHECK -T overlay_startup.c -o $BUILD_DIR/overlay_startup.s
@@ -67,6 +68,9 @@ cc65 -g --cpu $CC65CPU -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_D
 # Kernel access
 cc65 -g --cpu 65C02 -t $CC65TGT $OPTI -I $CONFIG_DIR $TARGET_DEFS $PLATFORM_DEFS -T kernel.c -o $BUILD_DIR/kernel.s
 
+#build strings binary from strings.txt
+perl strings2binary.pl strings
+
 
 echo "\n**************************\nCA65 assemble start...\n**************************\n"
 
@@ -74,6 +78,7 @@ echo "\n**************************\nCA65 assemble start...\n********************
 cd $BUILD_DIR
 ca65 -t $CC65TGT app.s
 ca65 -t $CC65TGT comm_buffer.s
+ca65 -t $CC65TGT debug.s
 ca65 -t $CC65TGT general.s
 ca65 -t $CC65TGT keyboard.s
 ca65 -t $CC65TGT overlay_startup.s
@@ -93,17 +98,15 @@ ca65 -t $CC65TGT ../memory.asm -o memory.o
 echo "\n**************************\nLD65 link start...\n**************************\n"
 
 # link files into an executable
-ld65 -C $CONFIG_DIR/$OVERLAY_CONFIG -o fterm.rom kernel.o app.o comm_buffer.o general.o keyboard.o memory.o overlay_startup.o screen.o serial.o sys.o text.o $CC65LIB -m fterm_$CC65TGT.map -Ln labels.lbl
+ld65 -C $CONFIG_DIR/$OVERLAY_CONFIG -o fterm.rom kernel.o app.o comm_buffer.o debug.o general.o keyboard.o memory.o overlay_startup.o screen.o serial.o sys.o text.o $CC65LIB -m fterm_$CC65TGT.map -Ln labels.lbl
 # $PROJECT/cc65/lib/common.lib
 
 #noTE: 2024-02-12: removed name.o as it was incompatible with the lichking-style memory map I want to use to get more memory
 
 echo "\n**************************\nCC65 tasks complete\n**************************\n"
 
-
 #copy strings to build folder
 cp ../strings/strings.bin .
-
 
 #build pgZ for disk
 fname=("fterm.rom" "fterm.rom.1" "fterm.rom.2" "strings.bin")
@@ -127,7 +130,7 @@ rm *.hdr
 cp fterm.pgZ ft_install/disk/
 
 # copy pgz binary to SD Card on F256 via fnxmanager
-python3 $FOENIXMGR/FoenixMgr/fnxmgr.py --copy fterm.pgZ
+python3.9 $FOENIXMGR/FoenixMgr/fnxmgr.py --copy fterm.pgZ
 
 
 # clear temp files

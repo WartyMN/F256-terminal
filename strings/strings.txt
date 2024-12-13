@@ -1,42 +1,60 @@
 #string ID	Length	String
 0	30	Are you sure you want to exit?
 1	13	Are you sure?
-2	4	Baud
-3	11	Select baud
-4	3	BBS
-5	18	Enter URL and port
-6	8	Hang up?
-7	3	Yes
-8	2	No
-9	2	OK
-10	6	Cancel
-11	9	MAIN MENU
-12	10	b Set Baud
-13	11	f Fone Home
-14	12	d Dial a BBS
-15	7	a About
-16	6	q Quit
-17	40	Error: Could not initialize serial comms
-18	22	Error: Serial overflow
-19	25	Unknown ANSI sequence: %s
-20	14	Generic Error!
-21	14	Fatal error %u
-22	40	We don't need no stinkin' error messages
-23	19	Out of memory error
-24	11	Hit any key
-25	27	Available memory: %zu bytes
-26	3	300
-27	3	600
-28	4	1200
-29	4	2400
-30	4	4800
-31	4	9600
-32	5	19200
-33	5	38400
-34	5	57600
-35	6	115200
-36	38	https://github.com/WartyMN/f256-fterm/
-37	47	F256 f/term %c2024 Micah Bly. Version %u.%u.%u.
-38	6	F256JR
-39	5	F256K
-40	18	<unknown hardware>
+2	23	Set Current Date & Time
+3	39	Enter date and time as 'YY-MM-DD HH:mm'
+4	4	Baud
+5	11	Select baud
+6	3	BBS
+7	18	Enter URL and port
+8	8	Hang up?
+9	3	Yes
+10	2	No
+11	2	OK
+12	6	Cancel
+13	9	MAIN MENU
+14	10	b Set Baud
+15	11	f Fone Home
+16	12	d Dial a BBS
+17	7	a About
+18	6	q Quit
+19	40	Error: Could not initialize serial comms
+20	22	Error: Serial overflow
+21	25	Unknown ANSI sequence: %s
+22	14	Generic Error!
+23	14	Fatal error %u
+24	40	We don't need no stinkin' error messages
+25	21	A disk error occurred
+26	19	Out of memory error
+27	11	Hit any key
+28	27	Available memory: %zu bytes
+29	27	Serial buffer saved to disk
+30	60	300 baud was good enough for WOPR, it's good enough for you.
+31	31	1200 baud: Volksmodem unlocked!
+32	21	2400 baud and flying!
+33	55	Trueish fact: Nobody ever advertised a 3600 baud modem.
+34	51	4800 baud. That's 16 times faster than a VIC modem!
+35	61	9600 baud. Bit of a sweet spot between speed and reliability.
+36	46	19200 baud. All hands stand by to reduce sail.
+37	47	38400 baud? Hope that's a 68000 in your pocket.
+38	36	57600 baud. US Robotics for the win!
+39	47	115200 baud. I think you overestimate my skilz.
+40	6	   300
+41	6	   600
+42	6	  1200
+43	6	  2400
+44	6	  3600
+45	6	  4800
+46	6	  9600
+47	6	 19200
+48	6	 38400
+49	6	 57600
+50	6	115200
+51	45	ANSI charset with Foenix-style font selected.
+52	42	ANSI charset with IBM-style font selected.
+53	24	Foenix charset selected.
+54	38	https://github.com/WartyMN/f256-fterm/
+55	63	f/term for F256 (classic) by Micah Bly, 2024. Version %u.%u.%u.
+56	6	F256JR
+57	5	F256K
+58	18	<unknown hardware>

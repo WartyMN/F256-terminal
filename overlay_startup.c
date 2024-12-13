@@ -19,6 +19,7 @@
 #include "overlay_startup.h"
 #include "app.h"
 #include "comm_buffer.h"
+#include "debug.h"
 #include "general.h"
 #include "kernel.h"
 #include "keyboard.h"
@@ -84,29 +85,29 @@
 /*****************************************************************************/
 
 
-#pragma data-name ("OVERLAY_STARTUP")
-
-// F256JR/K colors, used for both fore- and background colors in Text mode
-// in C256 & F256, these are 8 bit values; in A2560s, they are 32 bit values, and endianness matters
-static uint8_t standard_text_color_lut[64] = 
-{
-	0x00, 0x00, 0x00, 0x00,
-	0x66, 0x66, 0x66, 0x00,
-	0xAA, 0x00, 0x00, 0x00,
-	0x00, 0xAA, 0x00, 0x00,
-	0xEA, 0x41, 0xC0, 0x00,
-	0x00, 0x48, 0x87, 0x00,
-	0x00, 0x9C, 0xFF, 0x00,
-	0xFF, 0xDB, 0x57, 0x00,
-	0x28, 0x3F, 0x3F, 0x00,
-	0x8A, 0xAA, 0xAA, 0x00,
-	0xFF, 0x55, 0x55, 0x00,
-	0x55, 0xFF, 0x55, 0x00,
-	0xED, 0x8D, 0xFF, 0x00,
-	0x00, 0x00, 0xFF, 0x00,			
-	0x55, 0xFF, 0xFF, 0x00,
-	0xFF, 0xFF, 0xFF, 0x00
-};
+// #pragma data-name ("OVERLAY_STARTUP")
+// 
+// // F256JR/K colors, used for both fore- and background colors in Text mode
+// // in C256 & F256, these are 8 bit values; in A2560s, they are 32 bit values, and endianness matters
+// static uint8_t standard_text_color_lut[64] = 
+// {
+// 	0x00, 0x00, 0x00, 0x00,
+// 	0x66, 0x66, 0x66, 0x00,
+// 	0xAA, 0x00, 0x00, 0x00,
+// 	0x00, 0xAA, 0x00, 0x00,
+// 	0xEA, 0x41, 0xC0, 0x00,
+// 	0x00, 0x48, 0x87, 0x00,
+// 	0x00, 0x9C, 0xFF, 0x00,
+// 	0xFF, 0xDB, 0x57, 0x00,
+// 	0x28, 0x3F, 0x3F, 0x00,
+// 	0x8A, 0xAA, 0xAA, 0x00,
+// 	0xFF, 0x55, 0x55, 0x00,
+// 	0x55, 0xFF, 0x55, 0x00,
+// 	0xED, 0x8D, 0xFF, 0x00,
+// 	0x00, 0x00, 0xFF, 0x00,			
+// 	0x55, 0xFF, 0xFF, 0x00,
+// 	0xFF, 0xFF, 0xFF, 0x00
+// };
 
 #pragma data-name ("OVERLAY_STARTUP")
 
@@ -434,8 +435,7 @@ static uint8_t logo_color_lut[64] =
 /*                             Global Variables                              */
 /*****************************************************************************/
 
-static System	system_storage;
-System*			global_system = &system_storage;
+extern System*				global_system;
 
 
 
@@ -471,40 +471,6 @@ void Startup_ShowAboutInfo(void);
 /*                       Private Function Definitions                        */
 /*****************************************************************************/
 
-// enable or disable the gamma correction 
-void Sys_SetGammaMode(bool enable_it)
-{
-	uint8_t		the_gamma_mode_bits = R8(VICKY_GAMMA_CTRL_REG);
-	uint8_t		new_mode_flag;
-
-	// LOGIC:
-	//   both C256s and A2560s have a gamma correction mode
-	//   It needs to be hardware enabled by turning DIP switch 7 on the motherboard to ON (I believe)
-	//     bit 5 (0x20) of the video mode byte in vicky master control reflects the DIP switch setting, but doesn't change anything if you write to it 
-	//   byte 3 of the vicky master control appears to be dedicated to Gamma correction, but not all bits are documented. Stay away from all but the first 2!
-	//     gamma correction can be activated by setting the first and 2nd bits of byte 3
-	
-	if (enable_it)
-	{
-		new_mode_flag = 0xFF;
-	}
-	else
-	{
-		new_mode_flag = 0x00;
-	}
-
-	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
-	
-	//DEBUG_OUT(("%s %d: vicky byte 3 before gamma change = %x", __func__, __LINE__, the_gamma_mode_bits));
-	the_gamma_mode_bits |= (GAMMA_MODE_ONOFF_BITS & new_mode_flag);
-	R8(VICKY_GAMMA_CTRL_REG) = the_gamma_mode_bits;
-	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_GAMMA_CTRL_REG)));
-	//DEBUG_OUT(("%s %d: wrote to %x to register at %p", __func__, __LINE__, the_gamma_mode_bits, P8(VICKY_GAMMA_CTRL_REG)));
-	
-	Sys_RestoreIOPage();
-}
-
-
 // display machine info: F256JR or F256K
 void Startup_ShowMachineSplash(void)
 {
@@ -519,7 +485,7 @@ void Startup_ShowMachineSplash(void)
 	int8_t		i;
 	uint16_t	k;
 
-	if (global_system->model_number_ == MACHINE_F256_JR)
+	if (global_system->model_number_ == MACHINE_F256JR)
 	{
 		machine_splash_chars_right = &machine_splash_chars_jr[0];
 		machine_splash_attrs_right = &machine_splash_attrs_jr[0];
@@ -540,8 +506,8 @@ void Startup_ShowMachineSplash(void)
 	// show core machine logo ("F256" part without K or J)
 	left_x1 = MACHINE_SPLASH_START_COL_LEFT;
 	left_x2 = MACHINE_SPLASH_END_COL_LEFT;
-	Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-	Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+	Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+	Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 	General_DelayTicks(14000); // we want to show the thinnest version for a longer period of time
 	
 	// rotate through a series of increasingly fat chars for a reverse louver effect
@@ -557,7 +523,7 @@ void Startup_ShowMachineSplash(void)
 			++this_splash_char;
 		}
 
-		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 	}
 	
 	General_DelayTicks(600);
@@ -565,9 +531,9 @@ void Startup_ShowMachineSplash(void)
 // 	// bring the logo up from center of screen to top of screen, out of the way of the foenix logo
 // 	for (i=0; i < MACHINE_SPLASH_TRAVEL_ROWS; i++)
 // 	{		
-// 		Text_CopyMemBoxLinearBuffer((uint8_t*)&machine_splash_black_line, left_x1, (MACHINE_SPLASH_START_ROW+7)-i, left_x2, (MACHINE_SPLASH_START_ROW+7)-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
-// 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-// 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+// 		Text_CopyMemBoxLinearBuffer((uint8_t*)&machine_splash_black_line, left_x1, (MACHINE_SPLASH_START_ROW+7)-i, left_x2, (MACHINE_SPLASH_START_ROW+7)-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
+// 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+// 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 // 		
 // 		General_DelayTicks(200);
 // 	}
@@ -583,17 +549,17 @@ void Startup_ShowMachineSplash(void)
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer((uint8_t*)&machine_splash_black_line, 
 			right_x2+1, 1, 
 			right_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 		
 		--right_x1;
 		--right_x2;
@@ -607,32 +573,32 @@ void Startup_ShowMachineSplash(void)
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, 
 			left_x1, 1, 
 			left_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, 
 			left_x1, 1, 
 			left_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer((uint8_t*)&machine_splash_black_line, 
 			left_x2+1, 1, 
 			left_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer((uint8_t*)&machine_splash_black_line, 
 			right_x2+1, 1, 
 			right_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		--left_x1;
 		--left_x2;
@@ -674,8 +640,8 @@ void Startup_ShowFoenixLogo(void)
 	
 	// copy in chars and attrs for the logo
 	// logo is 36*45, so draw it at 22, 7
-	Text_CopyMemBoxLinearBuffer((uint8_t*)&logo_chars, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-	Text_CopyMemBoxLinearBuffer((uint8_t*)&logo_attrs, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+	Text_CopyMemBoxLinearBuffer((uint8_t*)&logo_chars, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+	Text_CopyMemBoxLinearBuffer((uint8_t*)&logo_attrs, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 	// show about info
 	Startup_ShowAboutInfo();
@@ -741,7 +707,7 @@ void Startup_ShowAboutInfo(void)
 	//   in all situations we want to show app name/about info
 	
 	// show app name, version, and credit
-	sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
+	sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_FTERM), MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
 	Text_DrawStringAtXY((80-strlen(global_string_buff1))/2, INFO_FMANAGER_DISPLAY_ROW, global_string_buff1, 15, COLOR_BLACK);
 }
 
@@ -752,240 +718,240 @@ void Startup_ShowAboutInfo(void)
 /*****************************************************************************/
 
 
-//! Initialize the system (primary entry point for all system initialization activity)
-//! Starts up the memory manager, creates the global system object, runs autoconfigure to check the system hardware, loads system and application fonts, allocates a bitmap for the screen.
-bool Sys_InitSystem(void)
-{	
-	// open log file, if on real hardware, and built with calypsi, and debugging flags were passed
-	#if defined LOG_LEVEL_1 || defined LOG_LEVEL_2 || defined LOG_LEVEL_3 || defined LOG_LEVEL_4 || defined LOG_LEVEL_5
-		if (General_LogInitialize() == false)
-		{
-			printf("%s %d: failed to open log file for writing \n", __func__, __LINE__);
-		}
-	#endif
-	
-	//DEBUG_OUT(("%s %d: Initializing System...", __func__, __LINE__));
-	
-	// check what kind of hardware the system is running on
-	// LOGIC: we need to know how many screens it has before allocating screen objects
-	if (Sys_AutoDetectMachine() == false)
-	{
-		LOG_ERR(("%s %d: Detected machine hardware is incompatible with this software", __func__ , __LINE__));
-		return false;
-	}
-	
-	//DEBUG_OUT(("%s %d: Hardware detected. Running Autoconfigure...", __func__, __LINE__));
-	
-	if (Sys_AutoConfigure() == false)
-	{
-		LOG_ERR(("%s %d: Auto configure failed", __func__, __LINE__));
-		return false;
-	}
-
-	// clear 0x0200, 0201, 0202, and 0203 to make next start after reset more accurate
-	// (if started from flash, then from disk, then reset, the "- fm" would still be in memory otherwise)
-	memset((char*)0x0200, 0, 4);
-
-	// Enable mouse pointer -- no idea if this works, f68 emulator doesn't support mouse yet. 
-	//R32(VICKYB_MOUSE_CTRL_A2560K) = 1;
-	
-	// set interrupt handlers
-//	ps2_init();
-//	global_old_keyboard_interrupt = sys_int_register(INT_KBD_PS2, &Sys_InterruptKeyboard);
-// 	global_old_keyboard_interrupt = sys_int_register(INT_KBD_A2560K, &Sys_InterruptKeyboard);
-// 	global_old_mouse_interrupt = sys_int_register(INT_MOUSE, &Sys_InterruptKeyboard);
-
-	//DEBUG_OUT(("%s %d: System initialization complete.", __func__, __LINE__));
-
-	return true;
-}
-
-
-//! Find out what kind of machine the software is running on, and determine # of screens available
-//! @param	the_system: valid pointer to system object
-//! @return	Returns false if the machine is known to be incompatible with this software. 
-bool Sys_AutoDetectMachine(void)
-{
-	uint8_t	the_machine_id;
-	
-	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
-	
-	the_machine_id = (R8(MACHINE_ID_REGISTER) & MACHINE_MODEL_MASK);	
-	
-	Sys_RestoreIOPage();
-
-	global_system->model_number_ = the_machine_id;
-// 	DEBUG_OUT(("%s %d: global_system->model_number_=%u", __func__, __LINE__, global_system->model_number_));
-	
-	return true;
-}
-
-
-//! Find out what kind of machine the software is running on, and configure the passed screen accordingly
-//! Configures screen settings, RAM addresses, etc. based on known info about machine types
-//! Configures screen width, height, total text rows and cols, and visible text rows and cols by checking hardware
-//! @param	the_system: valid pointer to system object
-//! @return	Returns false if the machine is known to be incompatible with this software. 
-bool Sys_AutoConfigure(void)
-{
-// 	sprintf(global_string_buff1, "global_system->model_number_=%u", global_system->model_number_);
-// 	Buffer_NewMessage(global_string_buff1);
-// 	General_DelayTicks(40000);
-
-	if (global_system->model_number_ == MACHINE_F256_JR || global_system->model_number_ == MACHINE_F256K)
-	{
-		//DEBUG_OUT(("%s %d: Configuring screens for an F256jr (1 screen)", __func__, __LINE__));
-// 		global_system->screen_[ID_CHANNEL_A]->vicky_ = P32(VICKY_C256);
-// 		global_system->screen_[ID_CHANNEL_A]->text_ram_ = TEXT_RAM_C256;
-// 		global_system->screen_[ID_CHANNEL_A]->text_attr_ram_ = TEXT_ATTR_C256;
-// 		global_system->screen_[ID_CHANNEL_A]->text_font_ram_ = FONT_MEMORY_BANK_C256;
-// 		global_system->screen_[ID_CHANNEL_A]->text_color_fore_ram_ = (char*)TEXT_FORE_LUT_C256;
-// 		global_system->screen_[ID_CHANNEL_A]->text_color_back_ram_ = (char*)TEXT_BACK_LUT_C256;
-	
-		// use auto configure to set resolution, text cols, margins, etc
-		if (Sys_DetectScreenSize() == false)
-		{
-			LOG_ERR(("%s %d: Unable to auto-configure screen resolution", __func__, __LINE__));
-			return false;
-		}
-
-		Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
-	
-		// set standard color LUTs for text mode
-		memcpy((uint8_t*)(TEXT_FORE_LUT), &standard_text_color_lut, 64);
-		memcpy((uint8_t*)(TEXT_BACK_LUT), &standard_text_color_lut, 64);
-	
-		Sys_RestoreIOPage();
-	
-// 		DEBUG_OUT(("%s %d: This screen has %i x %i text (%i x %i visible)", __func__, __LINE__, 
-// 			global_system->text_mem_cols_, 
-// 			global_system->text_mem_rows_, 
-// 			global_system->text_cols_vis_, 
-// 			global_system->text_rows_vis_
-// 			));
-	}
-	else
-	{
-		//DEBUG_OUT(("%s %d: this system %i not supported!", __func__, __LINE__, global_system->model_number_));
-		return false;
-	}
-		
-	// always enable gamma correction
-	Sys_SetGammaMode(true);
-	
-	return true;
-}
-
-
-//! Detect the current screen mode/resolution, and set # of columns, rows, H pixels, V pixels, accordingly
-bool Sys_DetectScreenSize(void)
-{
-	//uint8_t			new_mode;
-	uint8_t			the_video_mode_bits;
-	uint8_t			border_x_cols;
-	uint8_t			border_y_cols;
-	int16_t			border_x_pixels;
-	int16_t			border_y_pixels;
-	
-	// detect the video mode and set resolution based on it
-	
-	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
-
-	the_video_mode_bits = R8(VICKY_MASTER_CTRL_REG_H);
-	//DEBUG_OUT(("%s %d: 8bit vicky ptr 2nd byte=%p, video mode bits=%x", __func__, __LINE__, vicky_8bit_ptr, the_video_mode_bits));
-	
-	//   F256JR has 1 channel with 2 video modes, 70hz=640x400 (graphics doubled to 320x200) and 60hz=640x480
-
-	if (the_video_mode_bits & VIDEO_MODE_FREQ_BIT)
-	{
-		//new_mode = RES_320X200;
-		global_system->text_mem_rows_ = TEXT_ROW_COUNT_70HZ; // 2 options in JR. the_screen->height_ / TEXT_FONT_HEIGHT;
-	}
-	else
-	{
-		//new_mode = RES_320X240;
-		global_system->text_mem_rows_ = TEXT_ROW_COUNT_60HZ; // 2 options in JR. the_screen->height_ / TEXT_FONT_HEIGHT;
-	}
-
-// we don't really care about pixels in this app... 
-// 	switch (new_mode)
+// //! Initialize the system (primary entry point for all system initialization activity)
+// //! Starts up the memory manager, creates the global system object, runs autoconfigure to check the system hardware, loads system and application fonts, allocates a bitmap for the screen.
+// bool Sys_InitSystem(void)
+// {	
+// 	// open log file, if on real hardware, and built with calypsi, and debugging flags were passed
+// 	#if defined LOG_LEVEL_1 || defined LOG_LEVEL_2 || defined LOG_LEVEL_3 || defined LOG_LEVEL_4 || defined LOG_LEVEL_5
+// 		if (General_LogInitialize() == false)
+// 		{
+// 			printf("%s %d: failed to open log file for writing \n", __func__, __LINE__);
+// 		}
+// 	#endif
+// 	
+// 	//DEBUG_OUT(("%s %d: Initializing System...", __func__, __LINE__));
+// 	
+// 	// check what kind of hardware the system is running on
+// 	// LOGIC: we need to know how many screens it has before allocating screen objects
+// 	if (Sys_AutoDetectMachine() == false)
 // 	{
-// 		case RES_320X200:
-// 			the_screen->width_ = 320;	
-// 			the_screen->height_ = 200;
-// 			DEBUG_OUT(("%s %d: set to RES_320X200", __func__, __LINE__));
-// 			break;
-// 			
-// 		case RES_320X240:
-// 			the_screen->width_ = 320;	
-// 			the_screen->height_ = 240;
-// 			DEBUG_OUT(("%s %d: set to RES_320X200", __func__, __LINE__));
-// 			break;
+// 		LOG_ERR(("%s %d: Detected machine hardware is incompatible with this software", __func__ , __LINE__));
+// 		return false;
 // 	}
-	
-	// detect borders, and set text cols/rows based on resolution modified by borders (if any)
-	border_x_pixels = R8(VICKY_BORDER_X_SIZE);
-	border_y_pixels = R8(VICKY_BORDER_Y_SIZE);
-	//DEBUG_OUT(("%s %d: border x,y=%i,%i", __func__, __LINE__, R8(VICKY_BORDER_X_SIZE), R8(VICKY_BORDER_Y_SIZE)));
-	
-	Sys_RestoreIOPage();
-	
-	border_x_cols = (border_x_pixels * 2) / TEXT_FONT_WIDTH;
-	border_y_cols = (border_y_pixels * 2) / TEXT_FONT_HEIGHT;
-	global_system->text_mem_cols_ = TEXT_COL_COUNT_FOR_PLOTTING; // only 1 option in JR. the_screen->width_ / TEXT_FONT_WIDTH;
-	global_system->text_cols_vis_ = global_system->text_mem_cols_ - border_x_cols;
-	global_system->text_rows_vis_ = global_system->text_mem_rows_ - border_y_cols;
-// 	global_system->rect_.MaxX = the_screen->width_;
-// 	global_system->rect_.MaxY = the_screen->height_;	
-	//Sys_PrintScreen(the_screen);
-	
-	return true;
-}
-
-
-//! Set the left/right and top/bottom borders
-//! This will reset the visible text columns as a side effect
-//! Grotesquely large values will be accepted as is: use at your own risk!
-//! @param	border_width: width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
-//! @param	border_height: height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
-//! @return	returns false on any error/invalid input.
-void Sys_SetBorderSize(uint8_t border_width, uint8_t border_height)
-{
-	uint8_t		border_x_cols;
-	uint8_t		border_y_cols;
-
-	// LOGIC: 
-	//   borders are set in pixels, from 0 to 31 max. 
-	//   borders have no effect unless the border is enabled!
-	
-	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
-	
-	// set borders
-	R8(VICKY_BORDER_X_SIZE) = border_width;
-	R8(VICKY_BORDER_Y_SIZE) = border_height;
-	
-	// enable borders or disable
-	if (border_width > 0 || border_height > 0)
-	{
-		R8(VICKY_BORDER_CTRL_REG) = 1;
-	}
-	else
-	{
-		R8(VICKY_BORDER_CTRL_REG) = 0;
-	}
-	
-	Sys_RestoreIOPage();
-
-	border_x_cols = (border_width * 2) / TEXT_FONT_WIDTH;
-	border_y_cols = (border_height * 2) / TEXT_FONT_HEIGHT;
-	//DEBUG_OUT(("%s %d: x and y borders set to %u, %u", __func__, __LINE__, border_width, border_height));
-	//DEBUG_OUT(("%s %d: x and y borders cols/rows now %u, %u", __func__, __LINE__, border_x_cols, border_y_cols));
-	
-	// now we need to recalculate how many text cols/rows are visible, because it might have changed
-	global_system->text_cols_vis_ = global_system->text_mem_cols_ - border_x_cols;
-	global_system->text_rows_vis_ = global_system->text_mem_rows_ - border_y_cols;
-	//DEBUG_OUT(("%s %d: visible cols,rows now %u, %u", __func__, __LINE__, global_system->text_cols_vis_, global_system->text_rows_vis_));
-}
+// 	
+// 	//DEBUG_OUT(("%s %d: Hardware detected. Running Autoconfigure...", __func__, __LINE__));
+// 	
+// 	if (Sys_AutoConfigure() == false)
+// 	{
+// 		LOG_ERR(("%s %d: Auto configure failed", __func__, __LINE__));
+// 		return false;
+// 	}
+// 
+// 	// clear 0x0200, 0201, 0202, and 0203 to make next start after reset more accurate
+// 	// (if started from flash, then from disk, then reset, the "- fm" would still be in memory otherwise)
+// 	memset((char*)0x0200, 0, 4);
+// 
+// 	// Enable mouse pointer -- no idea if this works, f68 emulator doesn't support mouse yet. 
+// 	//R32(VICKYB_MOUSE_CTRL_A2560K) = 1;
+// 	
+// 	// set interrupt handlers
+// //	ps2_init();
+// //	global_old_keyboard_interrupt = sys_int_register(INT_KBD_PS2, &Sys_InterruptKeyboard);
+// // 	global_old_keyboard_interrupt = sys_int_register(INT_KBD_A2560K, &Sys_InterruptKeyboard);
+// // 	global_old_mouse_interrupt = sys_int_register(INT_MOUSE, &Sys_InterruptKeyboard);
+// 
+// 	//DEBUG_OUT(("%s %d: System initialization complete.", __func__, __LINE__));
+// 
+// 	return true;
+// }
+// 
+// 
+// //! Find out what kind of machine the software is running on, and determine # of screens available
+// //! @param	the_system: valid pointer to system object
+// //! @return	Returns false if the machine is known to be incompatible with this software. 
+// bool Sys_AutoDetectMachine(void)
+// {
+// 	uint8_t	the_machine_id;
+// 	
+// 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
+// 	
+// 	the_machine_id = (R8(MACHINE_ID_REGISTER) & MACHINE_MODEL_MASK);	
+// 	
+// 	Sys_RestoreIOPage();
+// 
+// 	global_system->model_number_ = the_machine_id;
+// // 	DEBUG_OUT(("%s %d: global_system->model_number_=%u", __func__, __LINE__, global_system->model_number_));
+// 	
+// 	return true;
+// }
+// 
+// 
+// //! Find out what kind of machine the software is running on, and configure the passed screen accordingly
+// //! Configures screen settings, RAM addresses, etc. based on known info about machine types
+// //! Configures screen width, height, total text rows and cols, and visible text rows and cols by checking hardware
+// //! @param	the_system: valid pointer to system object
+// //! @return	Returns false if the machine is known to be incompatible with this software. 
+// bool Sys_AutoConfigure(void)
+// {
+// // 	sprintf(global_string_buff1, "global_system->model_number_=%u", global_system->model_number_);
+// // 	Buffer_NewMessage(global_string_buff1);
+// // 	General_DelayTicks(40000);
+// 
+// 	if (global_system->model_number_ == MACHINE_F256JR || global_system->model_number_ == MACHINE_F256K)
+// 	{
+// 		//DEBUG_OUT(("%s %d: Configuring screens for an F256jr (1 screen)", __func__, __LINE__));
+// // 		global_system->screen_[ID_CHANNEL_A]->vicky_ = P32(VICKY_C256);
+// // 		global_system->screen_[ID_CHANNEL_A]->text_ram_ = TEXT_RAM_C256;
+// // 		global_system->screen_[ID_CHANNEL_A]->text_attr_ram_ = TEXT_ATTR_C256;
+// // 		global_system->screen_[ID_CHANNEL_A]->text_font_ram_ = FONT_MEMORY_BANK_C256;
+// // 		global_system->screen_[ID_CHANNEL_A]->text_color_fore_ram_ = (char*)TEXT_FORE_LUT_C256;
+// // 		global_system->screen_[ID_CHANNEL_A]->text_color_back_ram_ = (char*)TEXT_BACK_LUT_C256;
+// 	
+// 		// use auto configure to set resolution, text cols, margins, etc
+// 		if (Sys_DetectScreenSize() == false)
+// 		{
+// 			LOG_ERR(("%s %d: Unable to auto-configure screen resolution", __func__, __LINE__));
+// 			return false;
+// 		}
+// 
+// 		Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
+// 	
+// 		// set standard color LUTs for text mode
+// 		memcpy((uint8_t*)(TEXT_FORE_LUT), &standard_text_color_lut, 64);
+// 		memcpy((uint8_t*)(TEXT_BACK_LUT), &standard_text_color_lut, 64);
+// 	
+// 		Sys_RestoreIOPage();
+// 	
+// // 		DEBUG_OUT(("%s %d: This screen has %i x %i text (%i x %i visible)", __func__, __LINE__, 
+// // 			global_system->text_mem_cols_, 
+// // 			global_system->text_mem_rows_, 
+// // 			global_system->text_cols_vis_, 
+// // 			global_system->text_rows_vis_
+// // 			));
+// 	}
+// 	else
+// 	{
+// 		//DEBUG_OUT(("%s %d: this system %i not supported!", __func__, __LINE__, global_system->model_number_));
+// 		return false;
+// 	}
+// 		
+// 	// always enable gamma correction
+// 	Sys_SetGammaMode(true);
+// 	
+// 	return true;
+// }
+// 
+// 
+// //! Detect the current screen mode/resolution, and set # of columns, rows, H pixels, V pixels, accordingly
+// bool Sys_DetectScreenSize(void)
+// {
+// 	//uint8_t			new_mode;
+// 	uint8_t			the_video_mode_bits;
+// 	uint8_t			border_x_cols;
+// 	uint8_t			border_y_cols;
+// 	int16_t			border_x_pixels;
+// 	int16_t			border_y_pixels;
+// 	
+// 	// detect the video mode and set resolution based on it
+// 	
+// 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
+// 
+// 	the_video_mode_bits = R8(VICKY_MASTER_CTRL_REG_H);
+// 	//DEBUG_OUT(("%s %d: 8bit vicky ptr 2nd byte=%p, video mode bits=%x", __func__, __LINE__, vicky_8bit_ptr, the_video_mode_bits));
+// 	
+// 	//   F256JR has 1 channel with 2 video modes, 70hz=640x400 (graphics doubled to 320x200) and 60hz=640x480
+// 
+// 	if (the_video_mode_bits & VIDEO_MODE_FREQ_BIT)
+// 	{
+// 		//new_mode = RES_320X200;
+// 		global_system->text_mem_rows_ = TEXT_ROW_COUNT_70HZ; // 2 options in JR. the_screen->height_ / TEXT_FONT_HEIGHT;
+// 	}
+// 	else
+// 	{
+// 		//new_mode = RES_320X240;
+// 		global_system->text_mem_rows_ = TEXT_ROW_COUNT_60HZ; // 2 options in JR. the_screen->height_ / TEXT_FONT_HEIGHT;
+// 	}
+// 
+// // we don't really care about pixels in this app... 
+// // 	switch (new_mode)
+// // 	{
+// // 		case RES_320X200:
+// // 			the_screen->width_ = 320;	
+// // 			the_screen->height_ = 200;
+// // 			DEBUG_OUT(("%s %d: set to RES_320X200", __func__, __LINE__));
+// // 			break;
+// // 			
+// // 		case RES_320X240:
+// // 			the_screen->width_ = 320;	
+// // 			the_screen->height_ = 240;
+// // 			DEBUG_OUT(("%s %d: set to RES_320X200", __func__, __LINE__));
+// // 			break;
+// // 	}
+// 	
+// 	// detect borders, and set text cols/rows based on resolution modified by borders (if any)
+// 	border_x_pixels = R8(VICKY_BORDER_X_SIZE);
+// 	border_y_pixels = R8(VICKY_BORDER_Y_SIZE);
+// 	//DEBUG_OUT(("%s %d: border x,y=%i,%i", __func__, __LINE__, R8(VICKY_BORDER_X_SIZE), R8(VICKY_BORDER_Y_SIZE)));
+// 	
+// 	Sys_RestoreIOPage();
+// 	
+// 	border_x_cols = (border_x_pixels * 2) / TEXT_FONT_WIDTH;
+// 	border_y_cols = (border_y_pixels * 2) / TEXT_FONT_HEIGHT;
+// 	global_system->text_mem_cols_ = TEXT_COL_COUNT_FOR_PLOTTING; // only 1 option in JR. the_screen->width_ / TEXT_FONT_WIDTH;
+// 	global_system->text_cols_vis_ = global_system->text_mem_cols_ - border_x_cols;
+// 	global_system->text_rows_vis_ = global_system->text_mem_rows_ - border_y_cols;
+// // 	global_system->rect_.MaxX = the_screen->width_;
+// // 	global_system->rect_.MaxY = the_screen->height_;	
+// 	//Sys_PrintScreen(the_screen);
+// 	
+// 	return true;
+// }
+// 
+// 
+// //! Set the left/right and top/bottom borders
+// //! This will reset the visible text columns as a side effect
+// //! Grotesquely large values will be accepted as is: use at your own risk!
+// //! @param	border_width: width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
+// //! @param	border_height: height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
+// //! @return	returns false on any error/invalid input.
+// void Sys_SetBorderSize(uint8_t border_width, uint8_t border_height)
+// {
+// 	uint8_t		border_x_cols;
+// 	uint8_t		border_y_cols;
+// 
+// 	// LOGIC: 
+// 	//   borders are set in pixels, from 0 to 31 max. 
+// 	//   borders have no effect unless the border is enabled!
+// 	
+// 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
+// 	
+// 	// set borders
+// 	R8(VICKY_BORDER_X_SIZE) = border_width;
+// 	R8(VICKY_BORDER_Y_SIZE) = border_height;
+// 	
+// 	// enable borders or disable
+// 	if (border_width > 0 || border_height > 0)
+// 	{
+// 		R8(VICKY_BORDER_CTRL_REG) = 1;
+// 	}
+// 	else
+// 	{
+// 		R8(VICKY_BORDER_CTRL_REG) = 0;
+// 	}
+// 	
+// 	Sys_RestoreIOPage();
+// 
+// 	border_x_cols = (border_width * 2) / TEXT_FONT_WIDTH;
+// 	border_y_cols = (border_height * 2) / TEXT_FONT_HEIGHT;
+// 	//DEBUG_OUT(("%s %d: x and y borders set to %u, %u", __func__, __LINE__, border_width, border_height));
+// 	//DEBUG_OUT(("%s %d: x and y borders cols/rows now %u, %u", __func__, __LINE__, border_x_cols, border_y_cols));
+// 	
+// 	// now we need to recalculate how many text cols/rows are visible, because it might have changed
+// 	global_system->text_cols_vis_ = global_system->text_mem_cols_ - border_x_cols;
+// 	global_system->text_rows_vis_ = global_system->text_mem_rows_ - border_y_cols;
+// 	//DEBUG_OUT(("%s %d: visible cols,rows now %u, %u", __func__, __LINE__, global_system->text_cols_vis_, global_system->text_rows_vis_));
+// }
 
 
 

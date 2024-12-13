@@ -17,6 +17,7 @@
 
 
 // project includes
+#include "serial.h"
 
 // C includes
 #include <stdint.h>
@@ -43,8 +44,8 @@
 #endif
 
 #define MAJOR_VERSION	0
-#define MINOR_VERSION	1
-#define UPDATE_VERSION	1
+#define MINOR_VERSION	2
+#define UPDATE_VERSION	0
 
 #define VERSION_NUM_X	0
 #define VERSION_NUM_Y	24
@@ -87,9 +88,10 @@
 /*                           App-wide color choices                          */
 /*****************************************************************************/
 
-#define APP_FOREGROUND_COLOR		COLOR_BRIGHT_BLUE
+#define APP_FOREGROUND_COLOR		ANSI_COLOR_BRIGHT_BLUE
 #define APP_BACKGROUND_COLOR		COLOR_BLACK
 #define APP_ACCENT_COLOR			COLOR_BLUE
+#define APP_SELECTED_FILE_COLOR		COLOR_BRIGHT_WHITE
 
 #define BUFFER_FOREGROUND_COLOR		COLOR_CYAN
 #define BUFFER_BACKGROUND_COLOR		COLOR_BLACK
@@ -102,7 +104,7 @@
 #define LIST_ACTIVE_COLOR			COLOR_BRIGHT_GREEN
 #define LIST_INACTIVE_COLOR			COLOR_GREEN
 
-#define LIST_HEADER_COLOR			COLOR_BRIGHT_WHITE
+#define LIST_HEADER_COLOR			COLOR_BRIGHT_YELLOW
 
 #define MENU_FOREGROUND_COLOR		COLOR_CYAN
 #define MENU_INACTIVE_COLOR			COLOR_BRIGHT_BLUE
@@ -221,11 +223,34 @@
 /*                               Enumerations                                */
 /*****************************************************************************/
 
+typedef enum font_choice
+{
+	FONT_STD			= 0,	// The standard foenix font
+	FONT_STD_KANA		,		// The standard look foenix font, but with Japanese kana glyphs (JIS)
+	FONT_STD_ANSI		,		// The standard look foenix font, but with ANSI codepoints
+	FONT_IBM_ANSI		,		// IBM 8x8 font with ANSI codepoints
+	FONT_NOT_SET
+} font_choice;
+
+typedef enum ui_glyph_choice
+{
+	UI_MODE_FOENIX		= 0,	// draw UI with glyphs that match FOENIX "std" font code points
+	UI_MODE_ANSI		= 1,	// draw UI with glyphs that match ANSI font code points
+	UI_MODE_NOT_SET		= 2,
+} ui_glyph_choice;
+
 
 /*****************************************************************************/
 /*                                 Structs                                   */
 /*****************************************************************************/
 
+typedef struct baud_config
+{
+	uint8_t		key_;
+	uint16_t	divisor_;
+	uint8_t		msg_string_id_;
+	uint8_t		lbl_string_id_;
+}  baud_config;
 
 /*****************************************************************************/
 /*                       Public Function Prototypes                          */
@@ -254,6 +279,14 @@ void App_Exit(uint8_t the_error_number);
 
 // Brings the requested overlay into memory
 void App_LoadOverlay(uint8_t the_overlay_em_bank_number);
+
+// saves current cursor position and turns off visible cursor during non-serial UI updates
+// call this when redrawing UI, updating baud display, etc, where you don't want cursor to leave terminal area
+void App_EnterStealthTextUpdateMode(void);
+
+// restores saved cursor position and turns on visible cursor after non-serial UI updates
+// call this after redrawing UI, updating baud display, etc, where you don't want cursor to leave terminal area
+void App_ExitStealthTextUpdateMode(void);
 
 
 #endif /* FILE_MANAGER_H_ */

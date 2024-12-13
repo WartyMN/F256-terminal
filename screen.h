@@ -29,6 +29,9 @@
 
 #include "app.h"
 #include "text.h"
+
+
+#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -36,59 +39,26 @@
 /*                            Macro Definitions                              */
 /*****************************************************************************/
 
-#define PARAM_ONLY_RENDER_CHANGED_ITEMS		true	// parameter for Screen_RenderMenu
-#define PARAM_RENDER_ALL_MENU_ITEMS			false	// parameter for Screen_RenderMenu
+#define TERM_BODY_Y1					0
+#define TERM_BODY_HEIGHT				25	// UI_PANEL_OUTER_HEIGHT
+#define TERM_BODY_Y2					(TERM_BODY_Y1 + TERM_BODY_HEIGHT - 1)
 
-// there are 12 buttons which can be accessed with the same code
-#define NUM_BUTTONS					5
+#define TERM_BODY_WIDTH					80
+#define TERM_BODY_X1					0
+#define TERM_BODY_X2					(TERM_BODY_X1 + TERM_BODY_WIDTH - 1)
 
-// DEVICE actions
-#define BUTTON_ID_SET_BAUD			0
-#define BUTTON_ID_DIAL_FOENIX_BBS	(BUTTON_ID_SET_BAUD + 1)
-#define BUTTON_ID_DIAL_BBS			(BUTTON_ID_DIAL_FOENIX_BBS + 1)
-#define BUTTON_ID_ABOUT				(BUTTON_ID_DIAL_BBS + 1)
-#define BUTTON_ID_QUIT				(BUTTON_ID_ABOUT + 1)
+#define TITLE_BAR_Y						(TERM_BODY_Y2 + 1)
 
-#define UI_BUTTON_STATE_INACTIVE	false
-#define UI_BUTTON_STATE_ACTIVE		true
-
-#define UI_BUTTON_STATE_UNCHANGED	false
-#define UI_BUTTON_STATE_CHANGED		true
-
-#define UI_MIDDLE_AREA_START_X			35
-#define UI_MIDDLE_AREA_START_Y			14
-#define UI_MIDDLE_AREA_WIDTH			10
-
-#define UI_MIDDLE_AREA_DEV_MENU_Y		(UI_MIDDLE_AREA_START_Y + 2)
-#define UI_MIDDLE_AREA_DEV_CMD_Y		(UI_MIDDLE_AREA_DEV_MENU_Y + 3)
-
-#define UI_PANEL_INNER_WIDTH			80
-#define UI_PANEL_OUTER_WIDTH			80
-#define UI_PANEL_INNER_HEIGHT			40
-#define UI_PANEL_OUTER_HEIGHT			(UI_PANEL_INNER_HEIGHT + 2)
-#define UI_PANEL_TAB_WIDTH				50
-#define UI_PANEL_TAB_HEIGHT				3
-
-#define UI_VIEW_PANEL_TITLE_TAB_Y1		3
-#define UI_VIEW_PANEL_TITLE_TAB_HEIGHT	UI_PANEL_TAB_HEIGHT
-#define UI_VIEW_PANEL_TITLE_TAB_Y2		(UI_VIEW_PANEL_TITLE_TAB_Y1 + UI_VIEW_PANEL_TITLE_TAB_HEIGHT - 1)
-#define UI_VIEW_PANEL_HEADER_Y			(UI_VIEW_PANEL_TITLE_TAB_Y2 + 2)
-#define UI_VIEW_PANEL_BODY_Y1			6
-#define UI_VIEW_PANEL_BODY_HEIGHT		UI_PANEL_OUTER_HEIGHT
-#define UI_VIEW_PANEL_BODY_Y2			(UI_VIEW_PANEL_BODY_Y1 + UI_VIEW_PANEL_BODY_HEIGHT - 1)
-
-#define UI_VIEW_PANEL_BODY_WIDTH		UI_PANEL_OUTER_WIDTH
-#define UI_LEFT_PANEL_TITLE_TAB_X1		0
-#define UI_LEFT_PANEL_TITLE_TAB_WIDTH	UI_PANEL_TAB_WIDTH
-#define UI_LEFT_PANEL_TITLE_TAB_X2		(UI_LEFT_PANEL_TITLE_TAB_X1 + UI_LEFT_PANEL_TITLE_TAB_WIDTH - 1)
-#define UI_LEFT_PANEL_BODY_X1			0
-#define UI_LEFT_PANEL_BODY_X2			(UI_LEFT_PANEL_BODY_X1 + UI_VIEW_PANEL_BODY_WIDTH - 1)
-
-#define UI_FULL_PATH_LINE_Y				(UI_VIEW_PANEL_BODY_Y2 + 1)	// row, not in any boxes, under file panels, above comms panel, for showing full path of a file.
-
-#define UI_COPY_PROGRESS_Y				(UI_MIDDLE_AREA_FILE_CMD_Y)
-#define UI_COPY_PROGRESS_LEFTMOST		(UI_MIDDLE_AREA_START_X + 3)
-#define UI_COPY_PROGRESS_RIGHTMOST		(UI_COPY_PROGRESS_LEFTMOST + 5)
+#define TERM_PROGRESS_BAR_START_X		20
+#define TERM_PROGRESS_BAR_START_Y		TITLE_BAR_Y
+#define TERM_PROGRESS_BAR_WIDTH			10
+#define TERM_BAUD_X1					48
+#define TERM_DATE_X1					62
+#define TERM_ERROR_OE_X					38		// single-char spot for overrun error flag
+#define TERM_ERROR_PE_X					(TERM_ERROR_OE_X + 1)		// single-char spot for parity error flag
+#define TERM_ERROR_FE_X					(TERM_ERROR_PE_X + 1)		// single-char spot for framing error flag
+#define TERM_ERROR_BI_X					(TERM_ERROR_FE_X + 1)		// single-char spot for break interrupt error flag
+#define TERM_ERROR_ERR_X				(TERM_ERROR_BI_X + 1)		// single-char spot for overall error flag
 
 #define CH_PROGRESS_BAR_SOLID_CH1		134		// for drawing progress bars that use solid bars, this is the first char (least filled in)
 #define CH_PROGRESS_BAR_CHECKER_CH1		207		// for drawing progress bars that use checkerboard bars, this is the first char (least filled in)
@@ -131,30 +101,8 @@ typedef struct UI_Button
 /*                       Public Function Prototypes                          */
 /*****************************************************************************/
 
-// set up screen variables and draw screen for first time
-void Screen_Render(void);
-
-// Get user input and vet it against the menu items that are currently enabled
-// returns 0 if the key pressed was for a disabled menu item
-// returns the key pressed if it matched an enabled menu item, or if wasn't a known (to Screen) input. This lets App still allow for cursor keys, etc, which aren't represented by menu items
-uint8_t Screen_GetValidUserInput(void);
-
-// determine which menu items should active, which inactive
-// sets inactive/active, and flags any that changed since last evaluation
-// does not render
-void Screen_UpdateMenuStates(void);
-
-// renders the menu items, as either active or inactive, as appropriate. 
-// active/inactive and changed/not changed must previously have been set
-// if sparse_render is true, only those items that have a different enable decision since last render will be re-rendered. Set sparse_render to false if drawing menu for first time or after clearing screen, etc. 
-void Screen_RenderMenu(bool sparse_render);
-
 // display information about f/manager
 void Screen_ShowAppAboutInfo(void);
-
-// draw just the 3 column headers in the specified panel
-// if for_disk is true, will use name/type/size. if false, will use name/bank num/addr
-void Screen_DrawPanelHeader(uint8_t panel_id, bool for_disk);
 
 // show user a dialog and have them enter a string
 // if a prefilled string is not needed, set starter_string to an empty string

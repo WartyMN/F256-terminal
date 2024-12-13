@@ -15,6 +15,7 @@
 // project includes
 #include "comm_buffer.h"
 #include "app.h"
+#include "debug.h"
 #include "general.h"
 #include "keyboard.h"
 #include "strings.h"
@@ -39,6 +40,13 @@
 #define ROW_HIT_SPACE		COMM_BUFFER_LAST_ROW
 #define COL_HIT_SPACE		(COMM_BUFFER_LAST_COL - 11) // long enough for "hit any key"
 
+#define CH_ANSI_UL_CORNER	201	// double-line style
+#define CH_ANSI_UR_CORNER	187	// double-line style
+#define CH_ANSI_LL_CORNER	200	// double-line style
+#define CH_ANSI_LR_CORNER	188	// double-line style
+#define CH_ANSI_HLINE		205	// double-line style
+#define CH_ANSI_VLINE		186	// double-line style
+
 /*****************************************************************************/
 /*                           File-scoped Variables                           */
 /*****************************************************************************/
@@ -55,6 +63,7 @@ static char**		comm_row_ptr[COMM_BUFFER_NUM_ROWS];	// ptp for the comms buffer r
 /*****************************************************************************/
 
 
+extern ui_glyph_choice		global_ui_charset;
 
 
 
@@ -127,13 +136,15 @@ void Buffer_ScrollUp(void)
 // Draw the status and message area framework
 void Buffer_DrawCommunicationArea(void)
 {
-	// draw boxes around message area
-	Text_DrawBoxCoordsFancy(
-		COMM_BUFFER_BOX_FIRST_COL, COMM_BUFFER_BOX_FIRST_ROW,
-		COMM_BUFFER_BOX_LAST_COL, COMM_BUFFER_BOX_LAST_ROW,
-		BUFFER_ACCENT_COLOR, 
-		BUFFER_BACKGROUND_COLOR
-	);
+// 	// draw boxes around message area
+// 	if (global_ui_charset != UI_MODE_ANSI)
+// 	{
+// 		Text_DrawHLine(COMM_BUFFER_BOX_FIRST_COL, COMM_BUFFER_BOX_FIRST_ROW, COMM_BUFFER_BOX_NUM_COLS, CH_LINE_BLD_WE, BUFFER_ACCENT_COLOR, BUFFER_BACKGROUND_COLOR, CHAR_AND_ATTR);
+// 	}
+// 	else
+// 	{
+// 		Text_DrawHLine(COMM_BUFFER_BOX_FIRST_COL, COMM_BUFFER_BOX_FIRST_ROW, COMM_BUFFER_BOX_NUM_COLS, CH_ANSI_HLINE, BUFFER_ACCENT_COLOR, BUFFER_BACKGROUND_COLOR, CHAR_AND_ATTR);
+// 	}
 }
 
 
@@ -180,6 +191,13 @@ void Buffer_Clear(void)
 void Buffer_RefreshDisplay(void)
 {
 	uint8_t		i;
+	uint8_t		old_x;
+	uint8_t		old_y;
+	
+	// preserve current x,y so we can restore after refresh. 
+	// if we have a buffer update while doing terminal comms, we don't want cursor down in buffer area. 
+	old_x = Text_GetX();
+	old_y = Text_GetY();
 
 	// first clear all lines. 
 	// LOGIC: the inventory screen draws over player screen. 
@@ -209,6 +227,9 @@ void Buffer_RefreshDisplay(void)
 			BUFFER_BACKGROUND_COLOR
 		);
 	}
+	
+	// restore X,Y to what they were in case that was important
+	Text_SetXY(old_x, old_y);
 }
 
 

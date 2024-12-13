@@ -31,9 +31,6 @@
 /*                            Macro Definitions                              */
 /*****************************************************************************/
 
-#define PARAM_FOR_ATTR_MEM	true	// param for functions updating VICKY screen memory: make it affect color/attribute memory
-#define PARAM_FOR_CHAR_MEM	false	// param for functions updating VICKY screen memory: make it affect character memory
-
 #define ZP_BANK_SLOT		0x10	// zero-page address holding the LUT slot to be modified (0-7) (eg, if 0, will be $08,if 1, $09, etc.)
 #define ZP_BANK_NUM			0x11	// zero-page address holding the new LUT bank# to be set in the ZP_BANK_SLOT
 #define ZP_OLD_BANK_NUM		0x12	// zero-page address holding the original LUT bank # before being changed
@@ -63,6 +60,13 @@
 #define EM_STORAGE_START_SLOT				0x05		// the 0-7 local CPU slot to map it into - overlay slot
 #define EM_STORAGE_START_PHYS_BANK_NUM		0x14		// the system physical bank number/slot where EM storage starts for us.
 
+#define STORAGE_INTERBANK_BUFFER		0x0400	// 1-page buffer. see cc65 memory config file. this is outside cc65 space.
+#define STORAGE_INTERBANK_BUFFER_LEN	0x0100	// 1-page buffer. see cc65 memory config file. this is outside cc65 space.
+#define STORAGE_UART_BUFFER				0x0500	// outside of cc65 memory space. see config file. 
+#define STORAGE_UART_BUFFER_LEN			0x299	// = 665. purely based on memory map config so that startup is at 799. just because that matches f/manager jr. all changeable. 
+
+#define UART_BUFFER_START_ADDR			STORAGE_UART_BUFFER
+#define UART_BUFFER_SIZE				STORAGE_UART_BUFFER_LEN
 
 /*****************************************************************************/
 /*                               Enumerations                                */
