@@ -78,6 +78,8 @@
 #define ACTION_SET_BAUD_57600	(CH_9 + CH_ALT_OFFSET)	// alt-9
 #define ACTION_SET_BAUD_115200	(CH_0 + CH_ALT_OFFSET)	// alt-10
 
+#define ACTION_RESET_UART		(CH_LC_R + CH_ALT_OFFSET)	// alt-r
+
 #define ACTION_DEBUG_DUMP		(CH_LC_D + CH_ALT_OFFSET)	// alt-d
 
 #define ACTION_TEST_CONNECTWIFI	(CH_LC_W + CH_ALT_OFFSET)	// alt-w
@@ -203,7 +205,7 @@ void App_Initialize(void)
 	App_ChangeUIFont(FONT_IBM_ANSI);
 
 	// initialize serial port for terminal comms
-	Serial_InitUART();
+	Serial_InitUART(ACTION_SET_BAUD_4800 - ACTION_SET_BAUD_115200);
 	Serial_InitANSIColors();
 	App_ChangeBaudRate(ACTION_SET_BAUD_4800 - ACTION_SET_BAUD_115200);	// ACTION_SET_BAUD_9600 - ACTION_SET_BAUD_115200
 	
@@ -300,6 +302,10 @@ void App_MainLoop(void)
 						success = Sys_UpdateRTC(global_string_buff2);
 						App_DisplayTime();
 					}
+				}
+				else if (user_input == ACTION_RESET_UART)
+				{
+					Serial_InitUART(global_baud_config[global_current_baud_config].divisor_);
 				}
 
 // 2024/12/11 MB: need to make version of serial debug dump that works with microkernel. trivial, but work. 

@@ -28,6 +28,11 @@ You have:
 
 ## Usage
 
+### Installation
+
+1. Copy "fterm.pgZ" onto your F256 SD card. You can do with from your modern computer, or you can use FOENIXMGR with, e.g., "python3 $FOENIXMGR/FoenixMgr/fnxmgr.py --copy fterm.pgZ"
+2. Start up f/manager if it is not already running. Select "fterm.pgZ" from the file list and hit Enter to launch it. If you do not have f/manager installed in flash memory, you can also load f/term from DOS or from SuperBASIC. 
+
 ### Starting a Session
 
 1. Start up the app
@@ -52,6 +57,7 @@ All commands are initiated with ALT key combinations. There is no separate "menu
 - **ALT-8**: 38400 baud
 - **ALT-9**: 57600 baud
 - **ALT-0**: 115200 baud
+- **ALT-R**: Reset serial connection. If you change the Wifi modem's speed, you might get a communication error. After matching the new speed, if it appears stuck, ALT-R may fix it. 
 
 #### Change font / character set
 

@@ -125,11 +125,12 @@ typedef struct ANSIcode {
 void Serial_InitANSIColors(void);
 
 // set up UART for serial comms
-void Serial_InitUART(void);
+// the_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
+void Serial_InitUART(uint16_t the_baud_rate_divisor);
 
 // change baud rate
-// new_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
-void Serial_SetBaud(uint16_t new_baud_rate_divisor);
+// the_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
+void Serial_SetBaud(uint16_t the_baud_rate_divisor);
 
 // send 1-255 bytes to the UART serial connection
 // returns # of bytes successfully sent (which may be less than number requested, in event of error, etc.)

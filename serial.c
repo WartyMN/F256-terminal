@@ -1101,15 +1101,15 @@ void Serial_InitANSIColors(void)
 
 
 // set up UART for serial comms
-void Serial_InitUART(void)
+// the_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
+void Serial_InitUART(uint16_t the_baud_rate_divisor)
 {
  	uint8_t		junk;
 
 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
 	R8(UART_LCR) = UART_DATA_BITS | UART_STOP_BITS | UART_PARITY | UART_NO_BRK_SIG;
-	Serial_SetDLAB();
-	R16(UART_DLL) = UART_BAUD_DIV_9600;
-	Serial_ClearDLAB();
+
+	Serial_SetBaud(the_baud_rate_divisor);
 
 	// no idea what this does. copying blindly from EMWhite's BASIC example
 	R8(UART_IIR) = 231;
@@ -1127,13 +1127,13 @@ void Serial_InitUART(void)
 
 
 // change baud rate
-// new_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
-void Serial_SetBaud(uint16_t new_baud_rate_divisor)
+// the_baud_rate_divisor must be UART_BAUD_DIV_4800, UART_BAUD_DIV_9600, etc.
+void Serial_SetBaud(uint16_t the_baud_rate_divisor)
 {
 	Sys_SwapIOPage(VICKY_IO_PAGE_REGISTERS);
 
 	Serial_SetDLAB();
-	R16(UART_DLL) = new_baud_rate_divisor;
+	R16(UART_DLL) = the_baud_rate_divisor;
 	Serial_ClearDLAB();
 
 	Sys_RestoreIOPage();

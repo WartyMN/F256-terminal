@@ -4,9 +4,6 @@ DEV=~/dev/bbedit-workspace-foenix
 PROJECT=$DEV/F256-terminal
 CONFIG_DIR=$PROJECT/config_cc65
 
-# name that will be used in files
-VERSION_STRING="1.0b1"
-
 # debug logging levels: 1=error, 2=warn, 3=info, 4=debug general, 5=allocations
 #DEBUG_DEF_1="-DLOG_LEVEL_1"
 #DEBUG_DEF_2="-DLOG_LEVEL_2"
@@ -21,8 +18,8 @@ DEBUG_DEF_5=
 
 # whether disk or serial debug will be used, IF debug is actually on
 # defining serial debug means serial will be used, not defining it means disk will be used. 
-DEBUG_VIA_SERIAL="-DUSE_SERIAL_LOGGING"
-#DEBUG_VIA_SERIAL=
+#DEBUG_VIA_SERIAL="-DUSE_SERIAL_LOGGING"
+DEBUG_VIA_SERIAL=
 
 #STACK_CHECK="--check-stack"
 STACK_CHECK=
